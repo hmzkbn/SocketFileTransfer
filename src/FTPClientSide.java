@@ -27,21 +27,14 @@ public class FTPClientSide {
 	private static final String SERVER_HOSTNAME = "fileServer.com";
 	private static final String FILE_PATH_TO_STORE= "C:\\message.txt";
 	private static final String FILE_ON_SERVER = "myFile.txt";
+	
+	
+	
 	public static void main(String[] args) throws IOException {
 		try (
 				DatagramSocket clientSocket =
 					new DatagramSocket();
-				
-	            ServerSocket tcpReceiveSocket =
-	                new ServerSocket(CLIENT_TCP_PORT);
-	            Socket clientTCPSocket = 
-	            	tcpReceiveSocket.accept();     
-	            PrintWriter out =
-	                new PrintWriter(clientTCPSocket.getOutputStream(), true);                   
-	            BufferedReader incomingFileStream = new BufferedReader(
-	                new InputStreamReader(clientTCPSocket.getInputStream()));
-				BufferedWriter fileWriter = new BufferedWriter(
-					new FileWriter(FILE_PATH_TO_STORE));	
+									
 	        ) 
 	        {
 			
@@ -65,9 +58,35 @@ public class FTPClientSide {
 			clientSocket.send(sendPacket);
 			
 			//Waiting for receiving the file stream from Server via TCP
+			try(
+					ServerSocket tcpReceiveSocket = new ServerSocket(CLIENT_TCP_PORT);
+					
+					Socket clientTCPSocket = tcpReceiveSocket.accept();
+					
+					PrintWriter out = new PrintWriter(clientTCPSocket.getOutputStream(), true);
+					
+					BufferedReader incomingFileStream = new BufferedReader(new InputStreamReader(clientTCPSocket.getInputStream()));
+					
+					)
+			{
+				try(
+						BufferedWriter fileWriter = new BufferedWriter(new FileWriter(FILE_PATH_TO_STORE));
+						
+						)
+				{
+					
+				}
+				catch (IOException StoringFileStream) {
+					// TODO: handle exception
+				}
+				
+			}
+			catch (IOException tcpConnection) {
+				// TODO: handle exception
+			}
 			
 	        }
-		catch (IOException e) {
+		catch (IOException udpConnection) {
 			System.out.println("Exception caught when trying to listen on port "
 	                + CLIENT_TCP_PORT + " or listening for a connection");
 		}
