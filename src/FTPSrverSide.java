@@ -9,7 +9,6 @@ public class FTPSrverSide {
 	private static final String DEFAULT_FILES_PATH = "C:\\allFiles\\";
 	
 	
-	
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException {
 		
