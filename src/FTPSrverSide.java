@@ -11,7 +11,6 @@ public class FTPSrverSide {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException {
 		
-		
 		String clientHostName;
 		int clientHostPort;
 		String fileName;
