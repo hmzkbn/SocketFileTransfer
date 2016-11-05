@@ -1,4 +1,5 @@
 import java.net.*;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.io.*;
@@ -79,8 +80,8 @@ public class FTPServerSide {
 						&& clientTCPPort != 0)
 
 				{
-					System.out.println(newLine + "Heyy...A new request is received... \r\n" + "from: " + clientHostName + ":"
-							+ clientTCPPort + "\r\n" + "For: " + fileName + newLine);
+					System.out.println(String.format(newLine + "Heyy...A new request is received just now at %s... \r\n" + "from: " + clientHostName + ":"
+							+ clientTCPPort + "\r\n" + "For: " + fileName + newLine ,  LocalDateTime.now().toString()));
 					File ClientRequestedFile = null;
 					
 					try {
