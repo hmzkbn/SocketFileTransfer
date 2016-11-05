@@ -2,6 +2,7 @@
 import java.net.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 import java.io.*;
 
 public class FTPClientSide {
@@ -10,7 +11,7 @@ public class FTPClientSide {
 	 * 1.C opens a stream (TCP) server socket on port 2000 for receiving the
 	 * file from S.
 	 *
-	 * 2. Client sends an UDP datagram to Server at destination port 3000 with
+	 * 2. Client sends an UDP datagram to Server at destination port 4000 with
 	 * the following information: File name Host name of Client Port number of
 	 * Client's server-Socket (TCP port waiting for receiving from server, 2000)
 	 *
@@ -27,10 +28,12 @@ public class FTPClientSide {
 	 */
 	private static final int SERVER_DATAGRAM_PORT = 4000;
 	private static final int CLIENT_TCP_PORT = 2000;
-	private static final String CLIENT_HOSTNAME = "PC45253.de.softlab.net";
-	private static final String SERVER_HOSTNAME = "fileServer.com";
-	private static final String FILE_PATH_TO_STORE = "C:\\fileOnClient.txt";
-	private static final String FILE_ON_SERVER = "fileOnServer.txt";
+//	private static final String CLIENT_HOSTNAME = "PC45253.de.softlab.net";
+//	private static final String SERVER_HOSTNAME = "fileServer.com";
+	private static final String CLIENT_HOSTNAME = "localhost";
+	private static final String SERVER_HOSTNAME = "localhost";
+	private static  String PATH_TO_STORE = "C:\\clientRepo\\";
+	private static  String FILE_ON_SERVER;
 	
 	static void copyStream(InputStream in, OutputStream out, int buffer) throws IOException {
         byte[] buf = new byte[buffer];
@@ -51,6 +54,12 @@ public class FTPClientSide {
 
 	public static void main(String[] args) throws IOException {
 		String newLine = System.getProperty("line.separator");
+		
+		//*********get file name from user************
+		Scanner reader = new Scanner(System.in);  // Reading from System.in
+		System.out.print("Enter a file name: ");
+		FILE_ON_SERVER = reader.next();
+		reader.close();
 		
 		try {
 						
@@ -93,24 +102,34 @@ public class FTPClientSide {
 				throw new Exception("Error in sending UDP packet!\r\n" + udpConnection.getMessage());
 			}
 
+			//*****************waiting for TCP message to download the file
 			try (ServerSocket tcpReceiveSocket = new ServerSocket(CLIENT_TCP_PORT);
 
 					Socket clientTCPSocket = tcpReceiveSocket.accept();
 
 					BufferedInputStream incomingStream = new BufferedInputStream(clientTCPSocket.getInputStream());
 
-					BufferedOutputStream toFileStream = new BufferedOutputStream(new FileOutputStream(FILE_PATH_TO_STORE));
+					
 			) {
-				
-				System.out.println(newLine + "File is being downloaded...");
-				if(incomingStream != null)
+				System.out.println(incomingStream.available());
+				if(incomingStream.available() > 0)
 				{
-					copyStream(incomingStream, toFileStream, 8192);
+					try(
+							BufferedOutputStream toFileStream = new BufferedOutputStream(new FileOutputStream(PATH_TO_STORE + FILE_ON_SERVER));
+							)
+					{
+						System.out.println(newLine + "File is being downloaded...");
+						copyStream(incomingStream, toFileStream, 8192);
+					}
+					catch (IOException clientFile) {
+						throw new Exception("Could not create the file! \r\n" + clientFile.getMessage());
+					}
 				}
 				else
 					throw new Exception("Error: Input Stream is empty! \r\n");
 				
-				System.out.println("File downloaded succesfully and saved under (" + FILE_PATH_TO_STORE + ")" + newLine);
+				System.out.println("File downloaded succesfully and saved under (" + PATH_TO_STORE + FILE_ON_SERVER + ")" + newLine);
+				Runtime.getRuntime().exec("explorer.exe /select," + PATH_TO_STORE + FILE_ON_SERVER);
 				
 			} catch (Exception socketOrFileInputStreamError) {
 				throw new Exception(socketOrFileInputStreamError);

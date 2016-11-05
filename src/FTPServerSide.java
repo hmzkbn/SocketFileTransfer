@@ -1,14 +1,17 @@
 import java.net.*;
 import java.util.HashMap;
 import java.util.Map;
-
 import java.io.*;
 
-public class FTPSrverSide {
+public class FTPServerSide {
 
 	private static final int SERVER_DATAGRAM_PORT = 4000;
-	private static final String DEFAULT_FILES_PATH = "C:\\allFiles\\";
+	private static final String DEFAULT_FILES_PATH = "C:\\serverRepo\\";
 
+	public FTPServerSide () throws Exception {
+		String[] args = new String[0];
+		main(args);
+	}
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException {
 
@@ -27,7 +30,8 @@ public class FTPSrverSide {
 					// Receiving the UDP packet
 					byte[] receiveData = new byte[1024];
 					DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-					System.out.print(newLine + "Waiting for client request...");
+					System.out.println("******************************************************************");
+					System.out.print("Waiting for client request...");
 					serverSocket.receive(receivePacket);
 
 					try (
@@ -101,6 +105,7 @@ public class FTPSrverSide {
 						outputSocketStream.write(buffer, 0, buffer.length);
 						outputSocketStream.flush();
 						System.out.println("File has been successfully sent!" + newLine);
+						System.out.println("******************************************************************");
 
 					} catch (Exception socketOrFileInputStreamError) {
 						throw new Exception(socketOrFileInputStreamError);
