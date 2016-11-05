@@ -1,109 +1,119 @@
 import java.net.*;
 import java.util.HashMap;
 import java.util.Map;
+
 import java.io.*;
 
 public class FTPSrverSide {
 
-	private static final int SERVER_DATAGRAM_PORT = 3000;
+	private static final int SERVER_DATAGRAM_PORT = 4000;
 	private static final String DEFAULT_FILES_PATH = "C:\\allFiles\\";
-	
+
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException {
-		
-		String clientHostName;
-		int clientHostPort;
-		String fileName;
-		
+
+		String clientHostName = "";
+		int clientTCPPort = 0;
+		String fileName = "";
+		String newLine = System.getProperty("line.separator");
 		while (true) {
-					
-			try(
-					DatagramSocket serverSocket = new DatagramSocket(SERVER_DATAGRAM_PORT);
-					
-					)
-			{
+
+			try {
 				
-				//Receiving the UDP packet
-				byte[] receiveData = new byte[1024];
-				DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-				serverSocket.receive(receivePacket);
-				
-				try(
-						//Deserializing UDP stream to Map object
-						ByteArrayInputStream udpByteStreamInput = new ByteArrayInputStream(receivePacket.getData());
-						
-						ObjectInputStream inMap = new ObjectInputStream(udpByteStreamInput);
-						
-						)
-				{
-					
-					
-					
-					//*****************how to get the map object out of this byte array
-					
-					
-					//found solution
-					//HashMap y = (HashMap<Integer, String>)x;
-					Map<String, String> controlInfoItems = new HashMap<String, String>();
-					controlInfoItems = (HashMap<String, String>)inMap.readObject();
-					
-					//Retrieve the control info Items 
-					for (Map.Entry<String, String> entry : controlInfoItems.entrySet()) {
-						switch (entry.getKey()) {
-						case "fileName":
-							fileName = entry.getValue();
-							System.out.println(fileName);
-							break;
-						case "clientHostName":
-							clientHostName = entry.getValue();
-							System.out.println(clientHostName);
-							break;
-						case "clientResponsePort":
-							clientHostPort = Integer.parseInt(entry.getValue());
-							System.out.println(clientHostPort);
-						default:
-							break;
+				//***********UDP Connection***************************
+				try (DatagramSocket serverSocket = new DatagramSocket(SERVER_DATAGRAM_PORT);
+
+				) {
+					// Receiving the UDP packet
+					byte[] receiveData = new byte[1024];
+					DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+					System.out.print(newLine + "Waiting for client request...");
+					serverSocket.receive(receivePacket);
+
+					try (
+							// Deserializing UDP stream to Map object
+							ByteArrayInputStream udpByteStreamInput = new ByteArrayInputStream(receivePacket.getData());
+							ObjectInputStream inMap = new ObjectInputStream(udpByteStreamInput);
+
+					) {
+
+						Map<String, String> controlInfoItems = new HashMap<String, String>();
+						controlInfoItems = (HashMap<String, String>) inMap.readObject();
+
+						// Retrieve the control info Items
+						for (Map.Entry<String, String> entry : controlInfoItems.entrySet()) {
+
+							switch (entry.getKey()) {
+							case "fileName":
+								fileName = entry.getValue();
+								break;
+							case "clientHostName":
+								clientHostName = entry.getValue();
+								break;
+							case "clientResponsePort":
+								clientTCPPort = Integer.parseInt(entry.getValue());
+							default:
+								break;
+							}
 						}
+					} catch (Exception cntInfoItems) {
+						throw new Exception ("Error while Control Info Item deSerialization! \r\n"
+								+ cntInfoItems.getMessage());
+						//Will be caught by udpSocket
+
 					}
-					
-					
-					
-					//Locating requested file
-//					try
-//					{
-//						File inputFile = new File(DEFAULT_FILES_PATH + fileName);
-//						//Now this is the time to go for given fileName 
-//						
-//						
-//						//*****************keep coding for creating the TCP socket and communication
-//						try
-//						{
-//							System.out.println("Hi");
-//						}
-//						catch (IOException tcpSocket) {
-//							System.out.println("Something went wrong with the TCP socket!\n" + tcpSocket.getMessage());
-//						}
-//						
-//					}
-//					catch (Exception fileNotFound) {
-//						System.out.println("File not Found! \r\n" + fileNotFound.getMessage()); 
-//					}
-					
+				} catch (Exception udpSocket) {
+					throw new Exception("Something went wrong with the UDP socket! \r\n" + udpSocket.getMessage());
+					//Will be caught by overall
 				}
-				catch (Exception cntInfoItems) {
-					System.out.println("Something went wrong with Control Info Items deSerialization! \r\n" + cntInfoItems.getMessage());
-					
-				}
-				finally {
-					
-				}
+
+							
+				// *****************Locating requested File and sending via TCP connection**************
 				
-			}
-			catch (IOException udpSocket) {
-				System.out.println("Something went wrong with the udp socket! \r\n" + udpSocket.getMessage());
+				// Check if the control information is complete
+				if (fileName != null && !fileName.isEmpty() && clientHostName != null && !clientHostName.isEmpty()
+						&& clientTCPPort != 0)
+
+				{
+					System.out.println(newLine + "Heyy...A new request is received... \r\n" + "from: " + clientHostName + ":"
+							+ clientTCPPort + "\r\n" + "For: " + fileName + newLine);
+					File ClientRequestedFile = null;
+					
+					try {
+						ClientRequestedFile = new File(DEFAULT_FILES_PATH + fileName);
+					} catch (Exception fileNotFound) {
+						throw new Exception("Error: Requested File was not found!");
+						//Will be caught by overall
+					}
+
+					InetAddress clientIPAddr = InetAddress.getByName(clientHostName);
+					
+					//**********sending file content via TCP connection*****************
+					try (
+							Socket clientSocket = new Socket(clientIPAddr, clientTCPPort);
+							BufferedInputStream bis = new BufferedInputStream(new FileInputStream(ClientRequestedFile));
+							BufferedOutputStream outputSocketStream = new BufferedOutputStream(clientSocket.getOutputStream());
+
+					) {
+
+						byte[] buffer = new byte[(int) ClientRequestedFile.length()];
+						bis.read(buffer, 0, buffer.length);
+						outputSocketStream.write(buffer, 0, buffer.length);
+						outputSocketStream.flush();
+						System.out.println("File has been successfully sent!" + newLine);
+
+					} catch (Exception socketOrFileInputStreamError) {
+						throw new Exception(socketOrFileInputStreamError);
+						//Will be caught by overall
+					}
+
+				} else
+					throw new Exception("Missing control Information!");
+
+			} catch (Exception overall) {
+				System.out.println("Oops...." + overall.getMessage());
 			}
 		}
-		
 
 	}
 
